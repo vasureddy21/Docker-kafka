@@ -1,0 +1,82 @@
+# --------------------------------------------------
+# Base Image (RHEL 9 / UBI)
+# --------------------------------------------------
+FROM registry.access.redhat.com/ubi9/ubi:latest
+
+# --------------------------------------------------
+# Locale
+# --------------------------------------------------
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+# --------------------------------------------------
+# OS Packages + Tools
+# --------------------------------------------------
+RUN dnf -y update && \
+    dnf -y install --allowerasing \
+        sudo \
+        nano \
+        curl \
+        openssl \
+        openssh \
+        openssh-clients \
+        openssh-server \
+        sshpass \
+        ca-certificates \
+        gnupg2 \
+        which \
+        shadow-utils \
+        glibc-langpack-en \
+        net-tools \
+        procps-ng \
+        python3.11 \
+        python3.11-devel \
+        python3.11-pip \
+        java-21-openjdk-devel \
+    && ln -sf /usr/bin/python3.11 /usr/bin/python3 \
+    && python3.11 -m pip install --upgrade pip \
+    && mkdir -p /var/run/sshd \
+    && ssh-keygen -A \
+    && sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && dnf clean all
+
+# --------------------------------------------------
+# Java (Correct + Stable for Confluent)
+# --------------------------------------------------
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk
+ENV PATH=${JAVA_HOME}/bin:${PATH}
+
+# Fail fast if Java path ever breaks (important)
+RUN test -d $JAVA_HOME && java -version && jps
+
+# --------------------------------------------------
+# Confluent Platform 7.9.5
+# --------------------------------------------------
+ENV CONFLUENT_VERSION=7.9.5
+ENV CONFLUENT_HOME=/opt/confluent
+
+RUN curl -fSL https://packages.confluent.io/archive/7.9/confluent-7.9.5.tar.gz \
+      -o /tmp/confluent.tar.gz \
+ && mkdir -p /opt \
+ && tar -xzf /tmp/confluent.tar.gz -C /opt \
+ && mv /opt/confluent-7.9.5 ${CONFLUENT_HOME} \
+ && rm -f /tmp/confluent.tar.gz
+
+ENV PATH=${CONFLUENT_HOME}/bin:${PATH}
+
+# --------------------------------------------------
+# Kafka Data Root (volume-safe, runtime-managed)
+# --------------------------------------------------
+RUN mkdir -p /opt/confluent/data
+
+# --------------------------------------------------
+# Shell usability
+# --------------------------------------------------
+RUN echo "alias ll='ls -alF --color=auto'" >> /etc/bashrc
+
+# --------------------------------------------------
+# SSH
+# --------------------------------------------------
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D"]

@@ -1,0 +1,116 @@
+version: "3.9"
+
+# -------------------------------
+# Build template (single image)
+# -------------------------------
+x-base-build: &base-build
+  context: .
+  dockerfile: Dockerfile-rhel
+
+# -------------------------------
+# Persistent volumes
+# -------------------------------
+volumes:
+  kafka1_data:
+  kafka1_logs:
+  kafka1_etc:
+
+  kafka2_data:
+  kafka2_logs:
+  kafka2_etc:
+
+  kafka3_data:
+  kafka3_logs:
+  kafka3_etc:
+
+  connect_data:
+  connect_logs:
+  connect_etc:
+
+  sr_data:
+  sr_logs:
+  sr_etc:
+
+  c3_data:
+  c3_logs:
+  c3_etc:
+
+# -------------------------------
+# Services
+# -------------------------------
+services:
+
+  kafka1:
+    build: *base-build
+    container_name: kafka1
+    hostname: kafka1
+    ports:
+      - "2225:22"
+    volumes:
+      - kafka1_data:/opt/confluent/data/kafka1
+      - kafka1_logs:/opt/confluent/logs
+      - kafka1_etc:/opt/confluent/etc/kafka
+    tty: true
+
+  kafka2:
+    build: *base-build
+    container_name: kafka2
+    hostname: kafka2
+    ports:
+      - "2226:22"
+    volumes:
+      - kafka2_data:/opt/confluent/data/kafka2
+      - kafka2_logs:/opt/confluent/logs
+      - kafka2_etc:/opt/confluent/etc/kafka
+    tty: true
+
+  kafka3:
+    build: *base-build
+    container_name: kafka3
+    hostname: kafka3
+    ports:
+      - "2227:22"
+    volumes:
+      - kafka3_data:/opt/confluent/data/kafka3
+      - kafka3_logs:/opt/confluent/logs
+      - kafka3_etc:/opt/confluent/etc/kafka
+    tty: true
+
+  connect:
+    build: *base-build
+    container_name: connect
+    hostname: connect
+    ports:
+      - "2229:22"
+      - "8083:8083"
+    volumes:
+      - connect_data:/opt/confluent/data/connect
+      - connect_logs:/opt/confluent/logs
+      - connect_etc:/opt/confluent/etc/kafka-connect
+    tty: true
+
+  schema-registry:
+    build: *base-build
+    container_name: schema-registry
+    hostname: schema-registry
+    ports:
+      - "2230:22"
+      - "8081:8081"
+    volumes:
+      - sr_data:/opt/confluent/data/schema-registry
+      - sr_logs:/opt/confluent/logs
+      - sr_etc:/opt/confluent/etc/schema-registry
+    tty: true
+
+  control-center:
+    build: *base-build
+    container_name: control-center
+    hostname: control-center
+    ports:
+      - "2228:22"
+      - "9021:9021"
+    volumes:
+      - c3_data:/opt/confluent/data/control-center
+      - c3_logs:/opt/confluent/logs
+      - c3_etc:/opt/confluent/etc/confluent-control-center
+    tty: true
